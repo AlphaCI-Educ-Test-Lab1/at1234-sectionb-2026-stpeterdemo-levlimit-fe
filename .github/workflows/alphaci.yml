@@ -1,0 +1,44 @@
+name: AlphaCI
+
+# Only the two long-lived branches are graded. Students branch freely to try
+# things out, and those pushes cost nothing: work is checked when it is
+# proposed for main or uat, not on every experiment. Without the branch
+# filter a student pushing 20 commits to a scratch branch would run the whole
+# seven-stage pipeline 20 times, which is the school's bill, not theirs.
+#
+# pull_request is filtered by TARGET branch, so a PR from any student branch
+# into main or uat is checked — that is the gate branch protection makes
+# mandatory, and the only path their code takes to get there.
+#
+# A push to a branch that also has an open pull request used to trigger BOTH
+# events, running the whole pipeline twice for one commit. Restricting the PR
+# trigger to these types keeps review coverage without paying for it twice.
+on:
+  push:
+    branches: [main, uat]
+  pull_request:
+    branches: [main, uat]
+    types: [opened, reopened, synchronize]
+
+# Students iterating against the hidden tests push repeatedly, often within
+# seconds. Without this, every superseded run completes and bills the school
+# for a result nobody will read.
+concurrency:
+  group: alphaci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  alphaci:
+    uses: cicd-external-project/cicd-workflow/.github/workflows/pipeline-master.yml@educ-v1
+    with:
+      language: react
+      assignment-id: assign_mss9ckuqeb5ml269
+      api-base-url: https://alphaci-educ-demo-u8n6.onrender.com/api
+    secrets:
+      CI_TOKEN: ${{ secrets.CI_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
